@@ -1,0 +1,7 @@
+interface:
+  display_name: "Supernova Pool Intel"
+  short_description: "Rank Supernova pools by APR, vote flow, liquidity, and safety."
+  default_prompt: "Use $supernova-pool-intel to scan Supernova pools and return the best opportunities ranked by APR, volume, and safety with explicit risk reasons."
+
+policy:
+  allow_implicit_invocation: true

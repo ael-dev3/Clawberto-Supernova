@@ -24,3 +24,20 @@ This folder contains only contracts verified as live on Ethereum mainnet (`chain
 - ABI files saved: 22
 - Contracts with source saved: 23
 - Total .sol files saved: 292
+
+## OpenClaw Skill: Supernova Pool Intel
+
+This repo now includes a production OpenClaw skill for pool intelligence:
+- Skill path: `skills/supernova-pool-intel`
+- Main scanner: `skills/supernova-pool-intel/scripts/supernova_pool_scan.py`
+- Contract call helper: `skills/supernova-pool-intel/scripts/supernova_contract_call.py`
+
+Quick start:
+```bash
+python3 skills/supernova-pool-intel/scripts/supernova_pool_scan.py
+```
+
+Run local simulations/tests:
+```bash
+bash skills/supernova-pool-intel/scripts/run_local_sims.sh
+```
