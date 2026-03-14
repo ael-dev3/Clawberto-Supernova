@@ -37,7 +37,7 @@ export type ContractAlias = keyof typeof CORE_CONTRACTS;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const REPO_ROOT = resolve(__dirname, '../../../..');
+const REPO_ROOT = resolve(__dirname, '../../..');
 
 const ERC20_ABI = [
   'function symbol() view returns (string)',

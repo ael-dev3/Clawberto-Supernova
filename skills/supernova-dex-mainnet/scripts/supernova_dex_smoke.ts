@@ -4,6 +4,7 @@ import {
   buildSwapPlanEthInV2,
   contractRegistry,
   getProvider,
+  loadLiveContracts,
   networkSummary,
   quoteV2,
   readPairV2,
@@ -17,12 +18,13 @@ async function main() {
     throw new Error(`wrong network: chainId=${network.chainId}`);
   }
 
-  const [nova, pair, quote, approvePlan, ethInPlan] = await Promise.all([
+  const [nova, pair, quote, approvePlan, ethInPlan, liveContracts] = await Promise.all([
     readTokenMeta(provider, 'nova'),
     readPairV2(provider, 'weth', 'nova', false),
     quoteV2(provider, 'weth', 'nova', '0.01'),
     buildApprovePlan(provider, 'nova', 'routerv2', '1'),
     buildSwapPlanEthInV2(provider, 'nova', '0.01', '0x000000000000000000000000000000000000dEaD', false, 50, 1200),
+    Promise.resolve(loadLiveContracts()),
   ]);
 
   console.log(JSON.stringify({
@@ -36,6 +38,7 @@ async function main() {
       approveTarget: approvePlan.to,
       ethInPlanTarget: ethInPlan.to,
       ethInPlanPair: ethInPlan.pair,
+      liveContractCount: liveContracts.length,
     }
   }, null, 2));
 }
