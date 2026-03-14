@@ -196,6 +196,29 @@ export async function readSigner(provider: JsonRpcProvider, pkEnv = DEFAULT_SIGN
   };
 }
 
+export async function controlSummary(provider: JsonRpcProvider, pkEnv = DEFAULT_SIGNER_ENV) {
+  const [network, signer] = await Promise.all([
+    networkSummary(provider),
+    readSigner(provider, pkEnv)
+  ]);
+  return {
+    mode: 'eth-mainnet-control',
+    network,
+    signer,
+    defaults: {
+      rpcEnv: 'ETH_MAINNET_RPC_URL',
+      pkEnv,
+      routerv2: getAddress(CORE_CONTRACTS.routerv2),
+      swaprouter: getAddress(CORE_CONTRACTS.swaprouter),
+      pairfactory: getAddress(CORE_CONTRACTS.pairfactory),
+      factorycl: getAddress(CORE_CONTRACTS.factorycl),
+      gaugemanager: getAddress(CORE_CONTRACTS.gaugemanager),
+      voter: getAddress(CORE_CONTRACTS.voter),
+      nfpm: getAddress(CORE_CONTRACTS.nfpm)
+    }
+  };
+}
+
 export function contractRegistry(): Record<string, string> {
   return Object.fromEntries(Object.entries(CORE_CONTRACTS).map(([k, v]) => [k, getAddress(v)]));
 }

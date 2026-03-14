@@ -19,6 +19,7 @@ Use this skill for **Ethereum mainnet** Supernova interaction.
 
 ## What this skill covers
 
+- ETH mainnet control checks (RPC + signer + core targets)
 - network sanity checks
 - core Supernova contract registry
 - ERC20 token metadata reads
@@ -43,6 +44,7 @@ npm run snova -- "snova network"
 Supported commands:
 
 - `snova network`
+- `snova control [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]`
 - `snova signer [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]`
 - `snova contracts [--all]`
 - `snova token <token>`
@@ -86,7 +88,24 @@ Tokens:
 - When both stable and volatile V2 pairs exist, set `--stable` explicitly for deterministic route selection.
 - `swap-plan-v2` can also accept manual `--amount-out-min` when you already have the minimum output from another source.
 
+## ETH Mainnet Control
+
+Use this section first when you need signer/rpc readiness for mainnet work.
+
+Quick check:
+```bash
+npm run snova -- "snova control"
+```
+
+What it reports:
+- network / chain id
+- signer env status
+- signer address
+- signer ETH balance
+- core mainnet Supernova targets
+
 ## References
 
 - `references/interaction-playbook.md`
+- `references/eth-mainnet-control.md`
 - `npm run smoke` for a live ETH mainnet sanity pass of the TS interaction layer

@@ -57,15 +57,21 @@ npm install
 npm run check
 ```
 
-Optional signer readiness:
+### ETH Mainnet Control
+
+Supernova now owns its own ETH mainnet control surface.
+
+Quick check:
 ```bash
 source /Users/marko/.openclaw/eth-mainnet-env.sh
+npm run snova -- "snova control"
 npm run snova -- "snova signer"
 ```
 
 Examples:
 ```bash
 npm run snova -- "snova network"
+npm run snova -- "snova control"
 npm run snova -- "snova contracts"
 npm run snova -- "snova balance 0x000000000000000000000000000000000000dEaD eth"
 npm run snova -- "snova allowance nova 0x000000000000000000000000000000000000dEaD routerv2"
@@ -81,6 +87,7 @@ Notes:
 - Uses ETH mainnet RPC from `ETH_MAINNET_RPC_URL` when set
 - Defaults to `https://ethereum.publicnode.com`
 - signer env defaults to `ETH_MAINNET_EXEC_PRIVATE_KEY`
+- `snova control` is the Supernova-native ETH mainnet control/status command
 - `snova signer` reports the loaded signer address + ETH balance without broadcasting
 - `quote-v2` quotes against the actual **pair address** and returns stable/volatile quote slots separately
 - `swap-plan-v2` emits calldata plans for direct single-hop RouterV2 swaps and does **not** broadcast

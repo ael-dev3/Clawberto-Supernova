@@ -6,6 +6,7 @@ import {
   buildSwapPlanEthOutV2,
   buildSwapPlanV2,
   contractRegistry,
+  controlSummary,
   getProvider,
   loadLiveContracts,
   networkSummary,
@@ -95,6 +96,9 @@ async function main(): Promise<void> {
   switch (command) {
     case 'network': {
       print(await networkSummary(provider));
+    }
+    case 'control': {
+      print(await controlSummary(provider, getFlag(parsed, 'pk-env', process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY')));
     }
     case 'signer': {
       print(await readSigner(provider, getFlag(parsed, 'pk-env', process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY')));
@@ -219,6 +223,7 @@ async function main(): Promise<void> {
       print({
         commands: [
           'snova network',
+          'snova control [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]',
           'snova signer [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]',
           'snova contracts [--all]',
           'snova token <token>',
