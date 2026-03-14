@@ -25,9 +25,11 @@ This folder contains only contracts verified as live on Ethereum mainnet (`chain
 - Contracts with source saved: 23
 - Total .sol files saved: 292
 
-## OpenClaw Skill: Supernova Pool Intel
+## OpenClaw Skills
 
-This repo now includes a production OpenClaw skill for pool intelligence:
+### 1) Supernova Pool Intel
+
+Production pool-intel scanner:
 - Skill path: `skills/supernova-pool-intel`
 - Main scanner: `skills/supernova-pool-intel/scripts/supernova_pool_scan.py`
 - Contract call helper: `skills/supernova-pool-intel/scripts/supernova_contract_call.py`
@@ -41,3 +43,32 @@ Run local simulations/tests:
 ```bash
 bash skills/supernova-pool-intel/scripts/run_local_sims.sh
 ```
+
+### 2) Supernova DEX Mainnet (TypeScript-first)
+
+Deterministic ETH mainnet + Supernova DEX read/planning layer:
+- Skill path: `skills/supernova-dex-mainnet`
+- Chat entrypoint: `skills/supernova-dex-mainnet/scripts/supernova_dex_chat.ts`
+- API/helpers: `skills/supernova-dex-mainnet/scripts/supernova_dex_api.ts`
+
+Install:
+```bash
+npm install
+```
+
+Examples:
+```bash
+npm run snova -- "snova network"
+npm run snova -- "snova contracts"
+npm run snova -- "snova pair-v2 weth usdc --stable false"
+npm run snova -- "snova pool-cl weth nova"
+npm run snova -- "snova quote-v2 weth nova --amount-in 0.1"
+npm run snova -- "snova swap-plan-v2 weth nova --amount-in 0.1 --recipient 0x000000000000000000000000000000000000dEaD --stable false --amount-out-min 1"
+```
+
+Notes:
+- Uses ETH mainnet RPC from `ETH_MAINNET_RPC_URL` when set
+- Defaults to `https://ethereum.publicnode.com`
+- `quote-v2` now quotes against the actual **pair address** and returns stable/volatile quote slots separately
+- `swap-plan-v2` emits calldata plans for direct single-hop RouterV2 swaps and does **not** broadcast
+- If you already know the minimum acceptable output, you can bypass live quote reads with `--amount-out-min <decimal>`
