@@ -9,6 +9,7 @@ import {
   getProvider,
   loadLiveContracts,
   networkSummary,
+  readSigner,
   quoteV2,
   readAllowance,
   readBalance,
@@ -94,6 +95,9 @@ async function main(): Promise<void> {
   switch (command) {
     case 'network': {
       print(await networkSummary(provider));
+    }
+    case 'signer': {
+      print(await readSigner(provider, getFlag(parsed, 'pk-env', process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY')));
     }
     case 'contracts': {
       const registry = contractRegistry();
@@ -215,6 +219,7 @@ async function main(): Promise<void> {
       print({
         commands: [
           'snova network',
+          'snova signer [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]',
           'snova contracts [--all]',
           'snova token <token>',
           'snova balance <owner> <asset|eth>',

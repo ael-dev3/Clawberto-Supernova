@@ -57,6 +57,12 @@ npm install
 npm run check
 ```
 
+Optional signer readiness:
+```bash
+source /Users/marko/.openclaw/eth-mainnet-env.sh
+npm run snova -- "snova signer"
+```
+
 Examples:
 ```bash
 npm run snova -- "snova network"
@@ -74,6 +80,8 @@ npm run snova -- "snova swap-plan-eth-out-v2 nova --amount-in 1000 --recipient 0
 Notes:
 - Uses ETH mainnet RPC from `ETH_MAINNET_RPC_URL` when set
 - Defaults to `https://ethereum.publicnode.com`
+- signer env defaults to `ETH_MAINNET_EXEC_PRIVATE_KEY`
+- `snova signer` reports the loaded signer address + ETH balance without broadcasting
 - `quote-v2` quotes against the actual **pair address** and returns stable/volatile quote slots separately
 - `swap-plan-v2` emits calldata plans for direct single-hop RouterV2 swaps and does **not** broadcast
 - `swap-plan-eth-in-v2` / `swap-plan-eth-out-v2` handle native ETH routing through the RouterV2 ETH entrypoints

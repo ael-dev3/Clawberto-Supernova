@@ -5,6 +5,7 @@ import {
   Contract,
   Interface,
   JsonRpcProvider,
+  Wallet,
   ZeroAddress,
   formatEther,
   formatUnits,
@@ -14,6 +15,7 @@ import {
 
 export const ETH_MAINNET_CHAIN_ID = 1n;
 export const DEFAULT_RPC_URL = process.env.ETH_MAINNET_RPC_URL || 'https://ethereum.publicnode.com';
+export const DEFAULT_SIGNER_ENV = process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY';
 export const ZERO = ZeroAddress;
 export const WEEK = 7 * 24 * 60 * 60;
 
@@ -163,6 +165,34 @@ export async function networkSummary(provider: JsonRpcProvider) {
     chainName: network.name,
     blockNumber,
     ok: network.chainId === ETH_MAINNET_CHAIN_ID
+  };
+}
+
+export async function readSigner(provider: JsonRpcProvider, pkEnv = DEFAULT_SIGNER_ENV) {
+  const privateKey = String(process.env[pkEnv] || '').trim();
+  if (!privateKey) {
+    return {
+      pkEnv,
+      ready: false,
+      reason: `missing env var: ${pkEnv}`,
+      address: null,
+      chainId: (await provider.getNetwork()).chainId.toString(),
+      rpcUrl: (provider as unknown as { _getConnection?: () => { url: string } })._getConnection?.().url || DEFAULT_RPC_URL,
+      ethBalanceRaw: null,
+      ethBalance: null
+    };
+  }
+  const signer = new Wallet(privateKey, provider);
+  const [network, balanceRaw] = await Promise.all([provider.getNetwork(), provider.getBalance(signer.address)]);
+  return {
+    pkEnv,
+    ready: true,
+    reason: null,
+    address: signer.address,
+    chainId: network.chainId.toString(),
+    rpcUrl: (provider as unknown as { _getConnection?: () => { url: string } })._getConnection?.().url || DEFAULT_RPC_URL,
+    ethBalanceRaw: balanceRaw.toString(),
+    ethBalance: formatEther(balanceRaw)
   };
 }
 

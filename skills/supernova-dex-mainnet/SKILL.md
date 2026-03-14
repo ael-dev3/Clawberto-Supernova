@@ -14,6 +14,8 @@ Use this skill for **Ethereum mainnet** Supernova interaction.
 - Deterministic commands only. Avoid ambiguous natural language for swap plans.
 - Print full addresses, token ids, pool ids, and calldata targets.
 - Keep RPC configurable with `ETH_MAINNET_RPC_URL`; default is `https://ethereum.publicnode.com`
+- Signer env defaults to `ETH_MAINNET_EXEC_PRIVATE_KEY`
+- Raw private keys stay out of repo files; use Keychain/env only
 
 ## What this skill covers
 
@@ -41,6 +43,7 @@ npm run snova -- "snova network"
 Supported commands:
 
 - `snova network`
+- `snova signer [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]`
 - `snova contracts [--all]`
 - `snova token <token>`
 - `snova balance <owner> <asset|eth>`
@@ -78,6 +81,7 @@ Tokens:
 ## Notes
 
 - `swap-plan-v2` is **plan only**: it returns calldata + target + value, not a broadcast.
+- `snova signer` only checks signer readiness/address/balance; it does not send transactions.
 - `quote-v2` uses RouterV2 pair-address quote flow and returns stable/volatile quote slots separately.
 - When both stable and volatile V2 pairs exist, set `--stable` explicitly for deterministic route selection.
 - `swap-plan-v2` can also accept manual `--amount-out-min` when you already have the minimum output from another source.
