@@ -20,12 +20,15 @@ Use this skill for **Ethereum mainnet** Supernova interaction.
 - network sanity checks
 - core Supernova contract registry
 - ERC20 token metadata reads
+- wallet / token balance reads
+- allowance reads
 - Supernova V2 pair discovery + reserves
 - Supernova CL pool discovery + state reads
 - gauge / voter / bribe inspection
 - NFPM LP position inspection
 - approval calldata planning
 - direct single-hop RouterV2 swap calldata planning
+- native ETH -> token and token -> native ETH calldata planning
 
 ## Commands
 
@@ -40,6 +43,8 @@ Supported commands:
 - `snova network`
 - `snova contracts [--all]`
 - `snova token <token>`
+- `snova balance <owner> <asset|eth>`
+- `snova allowance <token> <owner> <spender|alias>`
 - `snova pair-v2 <tokenA> <tokenB> [--stable]`
 - `snova pool-cl <tokenA> <tokenB>`
 - `snova gauge <pool>`
@@ -47,6 +52,8 @@ Supported commands:
 - `snova quote-v2 <tokenIn> <tokenOut> --amount-in <decimal>`
 - `snova approve-plan <token> <spender|alias> --amount <decimal>`
 - `snova swap-plan-v2 <tokenIn> <tokenOut> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]`
+- `snova swap-plan-eth-in-v2 <tokenOut> --amount-in-eth <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]`
+- `snova swap-plan-eth-out-v2 <tokenIn> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]`
 
 ## Useful aliases
 
@@ -66,6 +73,7 @@ Tokens:
 - `weth`
 - `usdc`
 - `nova`
+- `eth` (pseudo-asset for balance reads; use dedicated ETH swap-plan commands for native ETH routing)
 
 ## Notes
 
@@ -77,3 +85,4 @@ Tokens:
 ## References
 
 - `references/interaction-playbook.md`
+- `npm run smoke` for a live ETH mainnet sanity pass of the TS interaction layer

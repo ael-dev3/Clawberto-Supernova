@@ -8,8 +8,9 @@
   },
   "scripts": {
     "snova": "tsx skills/supernova-dex-mainnet/scripts/supernova_dex_chat.ts",
+    "smoke": "tsx skills/supernova-dex-mainnet/scripts/supernova_dex_smoke.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck"
+    "check": "npm run typecheck && npm run smoke"
   },
   "dependencies": {
     "ethers": "^6.15.0"

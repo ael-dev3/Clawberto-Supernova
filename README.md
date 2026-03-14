@@ -54,21 +54,28 @@ Deterministic ETH mainnet + Supernova DEX read/planning layer:
 Install:
 ```bash
 npm install
+npm run check
 ```
 
 Examples:
 ```bash
 npm run snova -- "snova network"
 npm run snova -- "snova contracts"
-npm run snova -- "snova pair-v2 weth usdc --stable false"
+npm run snova -- "snova balance 0x000000000000000000000000000000000000dEaD eth"
+npm run snova -- "snova allowance nova 0x000000000000000000000000000000000000dEaD routerv2"
+npm run snova -- "snova pair-v2 weth nova --stable false"
 npm run snova -- "snova pool-cl weth nova"
 npm run snova -- "snova quote-v2 weth nova --amount-in 0.1"
 npm run snova -- "snova swap-plan-v2 weth nova --amount-in 0.1 --recipient 0x000000000000000000000000000000000000dEaD --stable false --amount-out-min 1"
+npm run snova -- "snova swap-plan-eth-in-v2 nova --amount-in-eth 0.05 --recipient 0x000000000000000000000000000000000000dEaD --stable false"
+npm run snova -- "snova swap-plan-eth-out-v2 nova --amount-in 1000 --recipient 0x000000000000000000000000000000000000dEaD --stable false --amount-out-min 0.001"
 ```
 
 Notes:
 - Uses ETH mainnet RPC from `ETH_MAINNET_RPC_URL` when set
 - Defaults to `https://ethereum.publicnode.com`
-- `quote-v2` now quotes against the actual **pair address** and returns stable/volatile quote slots separately
+- `quote-v2` quotes against the actual **pair address** and returns stable/volatile quote slots separately
 - `swap-plan-v2` emits calldata plans for direct single-hop RouterV2 swaps and does **not** broadcast
+- `swap-plan-eth-in-v2` / `swap-plan-eth-out-v2` handle native ETH routing through the RouterV2 ETH entrypoints
 - If you already know the minimum acceptable output, you can bypass live quote reads with `--amount-out-min <decimal>`
+- `npm run smoke` performs a live ETH mainnet sanity pass for the TS skill

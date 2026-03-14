@@ -29,6 +29,11 @@ From Clawberto-HyperEVM:
 
 ## High-value reads
 
+### Operator readiness
+- native ETH balance of signer / recipient
+- ERC20 balance of signer / recipient
+- ERC20 allowance toward `routerv2`
+
 ### V2
 - PairFactory `getPair(tokenA, tokenB, stable)`
 - RouterV2 `pairFor(tokenA, tokenB, stable)`
@@ -60,6 +65,8 @@ From Clawberto-HyperEVM:
 This skill can build calldata for:
 - `approve(address spender, uint256 amount)`
 - `swapExactTokensForTokens(...)` on RouterV2 for direct single-hop routes
+- `swapExactETHForTokens(...)` for native ETH -> token routes
+- `swapExactTokensForETH(...)` for token -> native ETH routes
 
 If RouterV2 quote helpers revert, pass a manual `--amount-out-min` and keep the skill in planning mode.
 

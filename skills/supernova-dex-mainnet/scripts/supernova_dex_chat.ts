@@ -2,12 +2,16 @@
 import {
   CORE_CONTRACTS,
   buildApprovePlan,
+  buildSwapPlanEthInV2,
+  buildSwapPlanEthOutV2,
   buildSwapPlanV2,
   contractRegistry,
   getProvider,
   loadLiveContracts,
   networkSummary,
   quoteV2,
+  readAllowance,
+  readBalance,
   readClPool,
   readGauge,
   readPairV2,
@@ -106,6 +110,17 @@ async function main(): Promise<void> {
       const token = requirePositional(parsed, 1, 'token');
       print(await readTokenMeta(provider, token));
     }
+    case 'balance': {
+      const owner = requirePositional(parsed, 1, 'owner');
+      const asset = requirePositional(parsed, 2, 'asset');
+      print(await readBalance(provider, owner, asset));
+    }
+    case 'allowance': {
+      const token = requirePositional(parsed, 1, 'token');
+      const owner = requirePositional(parsed, 2, 'owner');
+      const spender = requirePositional(parsed, 3, 'spender');
+      print(await readAllowance(provider, token, owner, spender));
+    }
     case 'pair-v2': {
       const tokenA = requirePositional(parsed, 1, 'tokenA');
       const tokenB = requirePositional(parsed, 2, 'tokenB');
@@ -158,6 +173,40 @@ async function main(): Promise<void> {
         getFlag(parsed, 'amount-out-min')
       ));
     }
+    case 'swap-plan-eth-in-v2': {
+      const tokenOut = requirePositional(parsed, 1, 'tokenOut');
+      const amountInEth = getFlag(parsed, 'amount-in-eth');
+      const recipient = getFlag(parsed, 'recipient');
+      if (!amountInEth) throw new Error('Missing --amount-in-eth');
+      if (!recipient) throw new Error('Missing --recipient');
+      print(await buildSwapPlanEthInV2(
+        provider,
+        tokenOut,
+        amountInEth,
+        recipient,
+        getBoolFlag(parsed, 'stable'),
+        Number(getFlag(parsed, 'slippage-bps', '50')),
+        Number(getFlag(parsed, 'deadline-sec', '1200')),
+        getFlag(parsed, 'amount-out-min')
+      ));
+    }
+    case 'swap-plan-eth-out-v2': {
+      const tokenIn = requirePositional(parsed, 1, 'tokenIn');
+      const amountIn = getFlag(parsed, 'amount-in');
+      const recipient = getFlag(parsed, 'recipient');
+      if (!amountIn) throw new Error('Missing --amount-in');
+      if (!recipient) throw new Error('Missing --recipient');
+      print(await buildSwapPlanEthOutV2(
+        provider,
+        tokenIn,
+        amountIn,
+        recipient,
+        getBoolFlag(parsed, 'stable'),
+        Number(getFlag(parsed, 'slippage-bps', '50')),
+        Number(getFlag(parsed, 'deadline-sec', '1200')),
+        getFlag(parsed, 'amount-out-min')
+      ));
+    }
     case 'alias': {
       const value = requirePositional(parsed, 1, 'alias');
       print({ value, resolved: resolveAliasOrAddress(value) });
@@ -168,13 +217,17 @@ async function main(): Promise<void> {
           'snova network',
           'snova contracts [--all]',
           'snova token <token>',
+          'snova balance <owner> <asset|eth>',
+          'snova allowance <token> <owner> <spender|alias>',
           'snova pair-v2 <tokenA> <tokenB> [--stable]',
           'snova pool-cl <tokenA> <tokenB>',
           'snova gauge <pool>',
           'snova position <tokenId>',
           'snova quote-v2 <tokenIn> <tokenOut> --amount-in <decimal>',
           'snova approve-plan <token> <spender|alias> --amount <decimal>',
-          'snova swap-plan-v2 <tokenIn> <tokenOut> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]'
+          'snova swap-plan-v2 <tokenIn> <tokenOut> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]',
+          'snova swap-plan-eth-in-v2 <tokenOut> --amount-in-eth <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]',
+          'snova swap-plan-eth-out-v2 <tokenIn> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]'
         ],
         aliases: CORE_CONTRACTS
       });

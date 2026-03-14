@@ -53,7 +53,9 @@ const ROUTER_V2_ABI = [
   'function getReserves(address,address,bool) view returns (uint256,uint256)',
   'function getPoolAmountOut(uint256,address,address) view returns (uint256)',
   'function quoteAddLiquidity(address,address,bool,uint256,uint256) view returns (uint256,uint256,uint256)',
-  'function swapExactTokensForTokens(uint256 amountIn,uint256 amountOutMin,(address pair,address from,address to,bool stable,bool concentrated,address receiver)[] routes,address to,uint256 deadline) returns (uint256[] amounts)'
+  'function swapExactTokensForTokens(uint256 amountIn,uint256 amountOutMin,(address pair,address from,address to,bool stable,bool concentrated,address receiver)[] routes,address to,uint256 deadline) returns (uint256[] amounts)',
+  'function swapExactETHForTokens(uint256 amountOutMin,(address pair,address from,address to,bool stable,bool concentrated,address receiver)[] routes,address to,uint256 deadline) payable returns (uint256[] amounts)',
+  'function swapExactTokensForETH(uint256 amountIn,uint256 amountOutMin,(address pair,address from,address to,bool stable,bool concentrated,address receiver)[] routes,address to,uint256 deadline) returns (uint256[] amounts)'
 ];
 
 const PAIR_FACTORY_ABI = [
@@ -186,6 +188,10 @@ export function resolveAliasOrAddress(value: string): string {
   return getAddress(value.trim());
 }
 
+export function isNativeEth(value: string): boolean {
+  return value.trim().toLowerCase() === 'eth';
+}
+
 export async function readTokenMeta(provider: JsonRpcProvider, token: string): Promise<TokenMeta> {
   const addr = resolveAliasOrAddress(token);
   const c = new Contract(addr, ERC20_ABI, provider);
@@ -195,6 +201,52 @@ export async function readTokenMeta(provider: JsonRpcProvider, token: string): P
     c.decimals() as Promise<number>
   ]);
   return { address: addr, symbol, name, decimals: Number(decimals) };
+}
+
+export async function readBalance(provider: JsonRpcProvider, ownerIn: string, assetIn: string) {
+  const owner = resolveAliasOrAddress(ownerIn);
+  if (isNativeEth(assetIn)) {
+    const balanceRaw = await provider.getBalance(owner);
+    return {
+      owner,
+      asset: 'ETH',
+      address: ZERO,
+      symbol: 'ETH',
+      decimals: 18,
+      balanceRaw: balanceRaw.toString(),
+      balance: formatEther(balanceRaw)
+    };
+  }
+  const token = await readTokenMeta(provider, assetIn);
+  const c = new Contract(token.address, ERC20_ABI, provider);
+  const balanceRaw = await c.balanceOf(owner) as bigint;
+  return {
+    owner,
+    asset: token.symbol,
+    address: token.address,
+    symbol: token.symbol,
+    decimals: token.decimals,
+    balanceRaw: balanceRaw.toString(),
+    balance: formatUnits(balanceRaw, token.decimals)
+  };
+}
+
+export async function readAllowance(provider: JsonRpcProvider, tokenIn: string, ownerIn: string, spenderIn: string) {
+  if (isNativeEth(tokenIn)) {
+    throw new Error('ETH does not use ERC20 allowance');
+  }
+  const token = await readTokenMeta(provider, tokenIn);
+  const owner = resolveAliasOrAddress(ownerIn);
+  const spender = resolveAliasOrAddress(spenderIn);
+  const c = new Contract(token.address, ERC20_ABI, provider);
+  const allowanceRaw = await c.allowance(owner, spender) as bigint;
+  return {
+    token,
+    owner,
+    spender,
+    allowanceRaw: allowanceRaw.toString(),
+    allowance: formatUnits(allowanceRaw, token.decimals)
+  };
 }
 
 export async function readPairV2(provider: JsonRpcProvider, tokenAIn: string, tokenBIn: string, stable: boolean): Promise<PairV2Details> {
@@ -493,6 +545,27 @@ function chooseStableFlag(stableArg: boolean | null, volatilePair: string, stabl
   return { stable: false, warning: null };
 }
 
+async function resolveV2Route(provider: JsonRpcProvider, tokenInAddress: string, tokenOutAddress: string, stableArg: boolean | null) {
+  const pairFactory = new Contract(CORE_CONTRACTS.pairfactory, PAIR_FACTORY_ABI, provider);
+  const [volatilePairRaw, stablePairRaw] = await Promise.all([
+    pairFactory.getPair(tokenInAddress, tokenOutAddress, false) as Promise<string>,
+    pairFactory.getPair(tokenInAddress, tokenOutAddress, true) as Promise<string>
+  ]);
+  const volatilePair = getAddress(volatilePairRaw);
+  const stablePair = getAddress(stablePairRaw);
+  const chosen = chooseStableFlag(stableArg, volatilePair, stablePair);
+  const pair = chosen.stable ? stablePair : volatilePair;
+  if (pair === ZERO) {
+    throw new Error(`No ${chosen.stable ? 'stable' : 'volatile'} V2 pair exists for the requested token pair`);
+  }
+  return {
+    pair,
+    chosen,
+    volatilePair,
+    stablePair
+  };
+}
+
 export async function buildSwapPlanV2(
   provider: JsonRpcProvider,
   tokenInArg: string,
@@ -508,19 +581,8 @@ export async function buildSwapPlanV2(
   const tokenOut = await readTokenMeta(provider, tokenOutArg);
   const recipient = resolveAliasOrAddress(recipientArg);
   const amountIn = parseUnits(amountInDecimal, tokenIn.decimals);
-  const pairFactory = new Contract(CORE_CONTRACTS.pairfactory, PAIR_FACTORY_ABI, provider);
   const router = new Contract(CORE_CONTRACTS.routerv2, ROUTER_V2_ABI, provider);
-  const [volatilePairRaw, stablePairRaw] = await Promise.all([
-    pairFactory.getPair(tokenIn.address, tokenOut.address, false) as Promise<string>,
-    pairFactory.getPair(tokenIn.address, tokenOut.address, true) as Promise<string>
-  ]);
-  const volatilePair = getAddress(volatilePairRaw);
-  const stablePair = getAddress(stablePairRaw);
-  const chosen = chooseStableFlag(stableArg, volatilePair, stablePair);
-  const pair = chosen.stable ? stablePair : volatilePair;
-  if (pair === ZERO) {
-    throw new Error(`No ${chosen.stable ? 'stable' : 'volatile'} V2 pair exists for the requested token pair`);
-  }
+  const { pair, chosen } = await resolveV2Route(provider, tokenIn.address, tokenOut.address, stableArg);
   let quotedBestRaw: bigint | null = null;
   let quoteWarning: string | null = chosen.warning;
   let amountOutMin: bigint;
@@ -562,6 +624,132 @@ export async function buildSwapPlanV2(
     quotedBestAmountOut: quotedBestRaw !== null ? formatUnits(quotedBestRaw, tokenOut.decimals) : null,
     amountOutMinRaw: amountOutMin.toString(),
     amountOutMin: formatUnits(amountOutMin, tokenOut.decimals),
+    slippageBps,
+    deadline: deadline.toString(),
+    warning: quoteWarning,
+    approvalTarget: getAddress(CORE_CONTRACTS.routerv2)
+  };
+}
+
+export async function buildSwapPlanEthInV2(
+  provider: JsonRpcProvider,
+  tokenOutArg: string,
+  amountInEthDecimal: string,
+  recipientArg: string,
+  stableArg: boolean | null,
+  slippageBps: number,
+  deadlineSec: number,
+  amountOutMinDecimal?: string
+) {
+  const tokenOut = await readTokenMeta(provider, tokenOutArg);
+  const recipient = resolveAliasOrAddress(recipientArg);
+  const amountIn = parseUnits(amountInEthDecimal, 18);
+  const router = new Contract(CORE_CONTRACTS.routerv2, ROUTER_V2_ABI, provider);
+  const { pair, chosen } = await resolveV2Route(provider, CORE_CONTRACTS.weth, tokenOut.address, stableArg);
+  let quotedBestRaw: bigint | null = null;
+  let quoteWarning: string | null = chosen.warning;
+  let amountOutMin: bigint;
+  if (amountOutMinDecimal !== undefined) {
+    amountOutMin = parseUnits(amountOutMinDecimal, tokenOut.decimals);
+    quoteWarning = quoteWarning ?? 'amountOutMin provided manually; router quote skipped';
+  } else {
+    try {
+      quotedBestRaw = await router.getPoolAmountOut(amountIn, CORE_CONTRACTS.weth, pair) as bigint;
+      amountOutMin = quotedBestRaw * BigInt(Math.max(0, 10_000 - slippageBps)) / 10_000n;
+    } catch (error) {
+      throw new Error(`Direct router quote failed for requested pair ${pair}: ${error instanceof Error ? error.message : String(error)}. Retry with --amount-out-min <decimal> to supply the minimum manually.`);
+    }
+  }
+  const deadline = BigInt(nowSec() + deadlineSec);
+  const routes = [{
+    pair,
+    from: getAddress(CORE_CONTRACTS.weth),
+    to: tokenOut.address,
+    stable: chosen.stable,
+    concentrated: false,
+    receiver: recipient
+  }];
+  const iface = new Interface(ROUTER_V2_ABI);
+  const data = iface.encodeFunctionData('swapExactETHForTokens', [amountOutMin, routes, recipient, deadline]);
+  return {
+    action: 'swap-plan-eth-in-v2',
+    to: getAddress(CORE_CONTRACTS.routerv2),
+    value: amountIn.toString(),
+    data,
+    tokenIn: { address: ZERO, symbol: 'ETH', name: 'Ether', decimals: 18 },
+    tokenOut,
+    recipient,
+    stable: chosen.stable,
+    pair,
+    amountInRaw: amountIn.toString(),
+    amountIn: amountInEthDecimal,
+    quotedBestAmountOutRaw: quotedBestRaw?.toString() ?? null,
+    quotedBestAmountOut: quotedBestRaw !== null ? formatUnits(quotedBestRaw, tokenOut.decimals) : null,
+    amountOutMinRaw: amountOutMin.toString(),
+    amountOutMin: formatUnits(amountOutMin, tokenOut.decimals),
+    slippageBps,
+    deadline: deadline.toString(),
+    warning: quoteWarning,
+    approvalTarget: null
+  };
+}
+
+export async function buildSwapPlanEthOutV2(
+  provider: JsonRpcProvider,
+  tokenInArg: string,
+  amountInDecimal: string,
+  recipientArg: string,
+  stableArg: boolean | null,
+  slippageBps: number,
+  deadlineSec: number,
+  amountOutMinDecimal?: string
+) {
+  const tokenIn = await readTokenMeta(provider, tokenInArg);
+  const recipient = resolveAliasOrAddress(recipientArg);
+  const amountIn = parseUnits(amountInDecimal, tokenIn.decimals);
+  const router = new Contract(CORE_CONTRACTS.routerv2, ROUTER_V2_ABI, provider);
+  const { pair, chosen } = await resolveV2Route(provider, tokenIn.address, CORE_CONTRACTS.weth, stableArg);
+  let quotedBestRaw: bigint | null = null;
+  let quoteWarning: string | null = chosen.warning;
+  let amountOutMin: bigint;
+  if (amountOutMinDecimal !== undefined) {
+    amountOutMin = parseUnits(amountOutMinDecimal, 18);
+    quoteWarning = quoteWarning ?? 'amountOutMin provided manually; router quote skipped';
+  } else {
+    try {
+      quotedBestRaw = await router.getPoolAmountOut(amountIn, tokenIn.address, pair) as bigint;
+      amountOutMin = quotedBestRaw * BigInt(Math.max(0, 10_000 - slippageBps)) / 10_000n;
+    } catch (error) {
+      throw new Error(`Direct router quote failed for requested pair ${pair}: ${error instanceof Error ? error.message : String(error)}. Retry with --amount-out-min <decimal> to supply the minimum manually.`);
+    }
+  }
+  const deadline = BigInt(nowSec() + deadlineSec);
+  const routes = [{
+    pair,
+    from: tokenIn.address,
+    to: getAddress(CORE_CONTRACTS.weth),
+    stable: chosen.stable,
+    concentrated: false,
+    receiver: recipient
+  }];
+  const iface = new Interface(ROUTER_V2_ABI);
+  const data = iface.encodeFunctionData('swapExactTokensForETH', [amountIn, amountOutMin, routes, recipient, deadline]);
+  return {
+    action: 'swap-plan-eth-out-v2',
+    to: getAddress(CORE_CONTRACTS.routerv2),
+    value: '0',
+    data,
+    tokenIn,
+    tokenOut: { address: ZERO, symbol: 'ETH', name: 'Ether', decimals: 18 },
+    recipient,
+    stable: chosen.stable,
+    pair,
+    amountInRaw: amountIn.toString(),
+    amountIn: amountInDecimal,
+    quotedBestAmountOutRaw: quotedBestRaw?.toString() ?? null,
+    quotedBestAmountOut: quotedBestRaw !== null ? formatEther(quotedBestRaw) : null,
+    amountOutMinRaw: amountOutMin.toString(),
+    amountOutMin: formatEther(amountOutMin),
     slippageBps,
     deadline: deadline.toString(),
     warning: quoteWarning,
