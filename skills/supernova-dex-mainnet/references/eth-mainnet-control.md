@@ -1,49 +1,36 @@
-# ETH Mainnet Control
+# Upstream ETH Mainnet Control
 
-This section belongs to the Supernova skill itself.
+Canonical ETH mainnet control no longer lives in this repo.
 
-## Purpose
+Use the sibling repo instead:
+- repo: `/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet`
+- skill: `skills/eth-mainnet-control`
 
-Keep ETH mainnet control checks inside Supernova instead of depending on another skill's execution docs.
+That repo owns the generic mainnet interface/control surface for:
+- RPC sanity
+- signer readiness
+- ETH / ERC20 balance reads
+- allowance reads
+- approval planning
 
-## Scope
-
-Readiness and control only:
-- RPC/network sanity
-- signer presence
-- signer address
-- signer ETH balance
-- core contract targets
-
-No broadcasting is performed here.
-
-## Environment
-
-- RPC env: `ETH_MAINNET_RPC_URL`
-- signer env: `ETH_MAINNET_EXEC_PRIVATE_KEY`
-- optional override env for the chat wrapper: `SNOVA_PK_ENV`
-
-## Commands
+## Typical sequence
 
 ```bash
-npm run snova -- "snova control"
-npm run snova -- "snova signer"
-npm run snova -- "snova signer --pk-env ETH_MAINNET_EXEC_PRIVATE_KEY"
+cd /Users/marko/.openclaw/workspace/Clawberto-eth-mainnet
+npm run eth -- "eth control"
+npm run eth -- "eth signer"
+npm run eth -- "eth allowance nova <owner> routerv2"
+npm run eth -- "eth approve-plan nova routerv2 --amount 1"
 ```
 
-## Expected usage
+Then switch back here for Supernova-specific work:
 
-1. load signer env in shell
-2. run `snova control`
-3. verify:
-   - chain id is `1`
-   - signer is ready
-   - signer address is correct
-   - ETH balance is non-zero when execution funding is required
-4. use read/planning commands only after control is healthy
+```bash
+cd /Users/marko/.openclaw/workspace/Clawberto-Supernova
+npm run snova -- "snova quote-v2 weth nova --amount-in 0.1"
+npm run snova -- "snova swap-plan-v2 weth nova --amount-in 0.1 --recipient <address> --stable false"
+```
 
-## Notes
+## Boundary
 
-- Keep raw keys out of repo files.
-- `snova control` is the Supernova-native status surface.
-- Supernova planning commands remain plan/read-only even when signer env is loaded.
+This repo may still report Supernova contract targets and emit swap plans that include `approvalTarget`, but it should not be treated as the canonical home for generic ETH mainnet readiness or approval workflows.

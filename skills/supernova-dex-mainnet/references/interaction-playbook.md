@@ -1,5 +1,20 @@
 # Supernova DEX Mainnet Interaction Playbook
 
+## Mainnet readiness owner
+
+Generic ETH mainnet control lives upstream now:
+- repo: `/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet`
+- skill: `skills/eth-mainnet-control`
+
+Do prerequisite work there first:
+- RPC / chain sanity
+- signer readiness
+- balances
+- allowances
+- approval planning
+
+This repo starts at the Supernova protocol boundary.
+
 ## Design borrowed from sibling repos
 
 From Clawberto-Kittenswap:
@@ -27,17 +42,11 @@ From Clawberto-HyperEVM:
 - `weth`: `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`
 - `usdc`: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
 
-## High-value reads
-
-### Operator readiness
-- native ETH balance of signer / recipient
-- ERC20 balance of signer / recipient
-- ERC20 allowance toward `routerv2`
+## High-value Supernova reads
 
 ### V2
 - PairFactory `getPair(tokenA, tokenB, stable)`
 - RouterV2 `pairFor(tokenA, tokenB, stable)`
-- RouterV2 `getReserves(tokenA, tokenB, stable)`
 - RouterV2 `getPoolAmountOut(amountIn, tokenIn, pair)`
 
 ### CL
@@ -63,10 +72,11 @@ From Clawberto-HyperEVM:
 ## Planning boundary
 
 This skill can build calldata for:
-- `approve(address spender, uint256 amount)`
 - `swapExactTokensForTokens(...)` on RouterV2 for direct single-hop routes
 - `swapExactETHForTokens(...)` for native ETH -> token routes
 - `swapExactTokensForETH(...)` for token -> native ETH routes
+
+Approval planning belongs upstream in `Clawberto-eth-mainnet`.
 
 If RouterV2 quote helpers revert, pass a manual `--amount-out-min` and keep the skill in planning mode.
 

@@ -1,25 +1,17 @@
 #!/usr/bin/env node
 import {
   CORE_CONTRACTS,
-  buildApprovePlan,
   buildSwapPlanEthInV2,
   buildSwapPlanEthOutV2,
   buildSwapPlanV2,
   contractRegistry,
-  controlSummary,
   getProvider,
   loadLiveContracts,
-  networkSummary,
-  readSigner,
   quoteV2,
-  readAllowance,
-  readBalance,
   readClPool,
   readGauge,
   readPairV2,
   readPosition,
-  readTokenMeta,
-  resolveAliasOrAddress,
 } from './supernova_dex_api.js';
 
 type ParsedArgs = {
@@ -94,15 +86,6 @@ async function main(): Promise<void> {
   const provider = getProvider(process.env.ETH_MAINNET_RPC_URL);
 
   switch (command) {
-    case 'network': {
-      print(await networkSummary(provider));
-    }
-    case 'control': {
-      print(await controlSummary(provider, getFlag(parsed, 'pk-env', process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY')));
-    }
-    case 'signer': {
-      print(await readSigner(provider, getFlag(parsed, 'pk-env', process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY')));
-    }
     case 'contracts': {
       const registry = contractRegistry();
       const all = getBoolFlag(parsed, 'all');
@@ -113,21 +96,6 @@ async function main(): Promise<void> {
         });
       }
       print({ core: registry });
-    }
-    case 'token': {
-      const token = requirePositional(parsed, 1, 'token');
-      print(await readTokenMeta(provider, token));
-    }
-    case 'balance': {
-      const owner = requirePositional(parsed, 1, 'owner');
-      const asset = requirePositional(parsed, 2, 'asset');
-      print(await readBalance(provider, owner, asset));
-    }
-    case 'allowance': {
-      const token = requirePositional(parsed, 1, 'token');
-      const owner = requirePositional(parsed, 2, 'owner');
-      const spender = requirePositional(parsed, 3, 'spender');
-      print(await readAllowance(provider, token, owner, spender));
     }
     case 'pair-v2': {
       const tokenA = requirePositional(parsed, 1, 'tokenA');
@@ -154,13 +122,6 @@ async function main(): Promise<void> {
       const amountIn = getFlag(parsed, 'amount-in');
       if (!amountIn) throw new Error('Missing --amount-in');
       print(await quoteV2(provider, tokenIn, tokenOut, amountIn));
-    }
-    case 'approve-plan': {
-      const token = requirePositional(parsed, 1, 'token');
-      const spender = requirePositional(parsed, 2, 'spender');
-      const amount = getFlag(parsed, 'amount');
-      if (!amount) throw new Error('Missing --amount');
-      print(await buildApprovePlan(provider, token, spender, amount));
     }
     case 'swap-plan-v2': {
       const tokenIn = requirePositional(parsed, 1, 'tokenIn');
@@ -215,31 +176,21 @@ async function main(): Promise<void> {
         getFlag(parsed, 'amount-out-min')
       ));
     }
-    case 'alias': {
-      const value = requirePositional(parsed, 1, 'alias');
-      print({ value, resolved: resolveAliasOrAddress(value) });
-    }
     case 'help': {
       print({
         commands: [
-          'snova network',
-          'snova control [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]',
-          'snova signer [--pk-env ETH_MAINNET_EXEC_PRIVATE_KEY]',
           'snova contracts [--all]',
-          'snova token <token>',
-          'snova balance <owner> <asset|eth>',
-          'snova allowance <token> <owner> <spender|alias>',
           'snova pair-v2 <tokenA> <tokenB> [--stable]',
           'snova pool-cl <tokenA> <tokenB>',
           'snova gauge <pool>',
           'snova position <tokenId>',
           'snova quote-v2 <tokenIn> <tokenOut> --amount-in <decimal>',
-          'snova approve-plan <token> <spender|alias> --amount <decimal>',
           'snova swap-plan-v2 <tokenIn> <tokenOut> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]',
           'snova swap-plan-eth-in-v2 <tokenOut> --amount-in-eth <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]',
           'snova swap-plan-eth-out-v2 <tokenIn> --amount-in <decimal> --recipient <address> [--stable] [--slippage-bps 50] [--deadline-sec 1200] [--amount-out-min <decimal>]'
         ],
-        aliases: CORE_CONTRACTS
+        aliases: CORE_CONTRACTS,
+        prerequisiteRepo: '/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet'
       });
     }
     default:

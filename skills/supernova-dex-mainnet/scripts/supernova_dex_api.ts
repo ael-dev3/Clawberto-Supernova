@@ -5,7 +5,6 @@ import {
   Contract,
   Interface,
   JsonRpcProvider,
-  Wallet,
   ZeroAddress,
   formatEther,
   formatUnits,
@@ -15,7 +14,6 @@ import {
 
 export const ETH_MAINNET_CHAIN_ID = 1n;
 export const DEFAULT_RPC_URL = process.env.ETH_MAINNET_RPC_URL || 'https://ethereum.publicnode.com';
-export const DEFAULT_SIGNER_ENV = process.env.SNOVA_PK_ENV || 'ETH_MAINNET_EXEC_PRIVATE_KEY';
 export const ZERO = ZeroAddress;
 export const WEEK = 7 * 24 * 60 * 60;
 
@@ -44,10 +42,7 @@ const REPO_ROOT = resolve(__dirname, '../../..');
 const ERC20_ABI = [
   'function symbol() view returns (string)',
   'function name() view returns (string)',
-  'function decimals() view returns (uint8)',
-  'function balanceOf(address) view returns (uint256)',
-  'function allowance(address,address) view returns (uint256)',
-  'function approve(address,uint256) returns (bool)'
+  'function decimals() view returns (uint8)'
 ];
 
 const ROUTER_V2_ABI = [
@@ -168,57 +163,6 @@ export async function networkSummary(provider: JsonRpcProvider) {
   };
 }
 
-export async function readSigner(provider: JsonRpcProvider, pkEnv = DEFAULT_SIGNER_ENV) {
-  const privateKey = String(process.env[pkEnv] || '').trim();
-  if (!privateKey) {
-    return {
-      pkEnv,
-      ready: false,
-      reason: `missing env var: ${pkEnv}`,
-      address: null,
-      chainId: (await provider.getNetwork()).chainId.toString(),
-      rpcUrl: (provider as unknown as { _getConnection?: () => { url: string } })._getConnection?.().url || DEFAULT_RPC_URL,
-      ethBalanceRaw: null,
-      ethBalance: null
-    };
-  }
-  const signer = new Wallet(privateKey, provider);
-  const [network, balanceRaw] = await Promise.all([provider.getNetwork(), provider.getBalance(signer.address)]);
-  return {
-    pkEnv,
-    ready: true,
-    reason: null,
-    address: signer.address,
-    chainId: network.chainId.toString(),
-    rpcUrl: (provider as unknown as { _getConnection?: () => { url: string } })._getConnection?.().url || DEFAULT_RPC_URL,
-    ethBalanceRaw: balanceRaw.toString(),
-    ethBalance: formatEther(balanceRaw)
-  };
-}
-
-export async function controlSummary(provider: JsonRpcProvider, pkEnv = DEFAULT_SIGNER_ENV) {
-  const [network, signer] = await Promise.all([
-    networkSummary(provider),
-    readSigner(provider, pkEnv)
-  ]);
-  return {
-    mode: 'eth-mainnet-control',
-    network,
-    signer,
-    defaults: {
-      rpcEnv: 'ETH_MAINNET_RPC_URL',
-      pkEnv,
-      routerv2: getAddress(CORE_CONTRACTS.routerv2),
-      swaprouter: getAddress(CORE_CONTRACTS.swaprouter),
-      pairfactory: getAddress(CORE_CONTRACTS.pairfactory),
-      factorycl: getAddress(CORE_CONTRACTS.factorycl),
-      gaugemanager: getAddress(CORE_CONTRACTS.gaugemanager),
-      voter: getAddress(CORE_CONTRACTS.voter),
-      nfpm: getAddress(CORE_CONTRACTS.nfpm)
-    }
-  };
-}
-
 export function contractRegistry(): Record<string, string> {
   return Object.fromEntries(Object.entries(CORE_CONTRACTS).map(([k, v]) => [k, getAddress(v)]));
 }
@@ -241,10 +185,6 @@ export function resolveAliasOrAddress(value: string): string {
   return getAddress(value.trim());
 }
 
-export function isNativeEth(value: string): boolean {
-  return value.trim().toLowerCase() === 'eth';
-}
-
 export async function readTokenMeta(provider: JsonRpcProvider, token: string): Promise<TokenMeta> {
   const addr = resolveAliasOrAddress(token);
   const c = new Contract(addr, ERC20_ABI, provider);
@@ -254,52 +194,6 @@ export async function readTokenMeta(provider: JsonRpcProvider, token: string): P
     c.decimals() as Promise<number>
   ]);
   return { address: addr, symbol, name, decimals: Number(decimals) };
-}
-
-export async function readBalance(provider: JsonRpcProvider, ownerIn: string, assetIn: string) {
-  const owner = resolveAliasOrAddress(ownerIn);
-  if (isNativeEth(assetIn)) {
-    const balanceRaw = await provider.getBalance(owner);
-    return {
-      owner,
-      asset: 'ETH',
-      address: ZERO,
-      symbol: 'ETH',
-      decimals: 18,
-      balanceRaw: balanceRaw.toString(),
-      balance: formatEther(balanceRaw)
-    };
-  }
-  const token = await readTokenMeta(provider, assetIn);
-  const c = new Contract(token.address, ERC20_ABI, provider);
-  const balanceRaw = await c.balanceOf(owner) as bigint;
-  return {
-    owner,
-    asset: token.symbol,
-    address: token.address,
-    symbol: token.symbol,
-    decimals: token.decimals,
-    balanceRaw: balanceRaw.toString(),
-    balance: formatUnits(balanceRaw, token.decimals)
-  };
-}
-
-export async function readAllowance(provider: JsonRpcProvider, tokenIn: string, ownerIn: string, spenderIn: string) {
-  if (isNativeEth(tokenIn)) {
-    throw new Error('ETH does not use ERC20 allowance');
-  }
-  const token = await readTokenMeta(provider, tokenIn);
-  const owner = resolveAliasOrAddress(ownerIn);
-  const spender = resolveAliasOrAddress(spenderIn);
-  const c = new Contract(token.address, ERC20_ABI, provider);
-  const allowanceRaw = await c.allowance(owner, spender) as bigint;
-  return {
-    token,
-    owner,
-    spender,
-    allowanceRaw: allowanceRaw.toString(),
-    allowance: formatUnits(allowanceRaw, token.decimals)
-  };
 }
 
 export async function readPairV2(provider: JsonRpcProvider, tokenAIn: string, tokenBIn: string, stable: boolean): Promise<PairV2Details> {
@@ -568,23 +462,6 @@ export async function quoteV2(provider: JsonRpcProvider, tokenIn: string, tokenO
   };
 }
 
-export async function buildApprovePlan(provider: JsonRpcProvider, tokenIn: string, spenderIn: string, amountDecimal: string) {
-  const token = await readTokenMeta(provider, tokenIn);
-  const spender = resolveAliasOrAddress(spenderIn);
-  const amount = parseUnits(amountDecimal, token.decimals);
-  const iface = new Interface(ERC20_ABI);
-  return {
-    action: 'approve-plan',
-    token,
-    spender,
-    amountRaw: amount.toString(),
-    amount: amountDecimal,
-    to: token.address,
-    value: '0',
-    data: iface.encodeFunctionData('approve', [spender, amount])
-  };
-}
-
 function chooseStableFlag(stableArg: boolean | null, volatilePair: string, stablePair: string): { stable: boolean; warning: string | null } {
   const hasVolatile = volatilePair !== ZERO;
   const hasStable = stablePair !== ZERO;
@@ -810,6 +687,3 @@ export async function buildSwapPlanEthOutV2(
   };
 }
 
-export function prettyEth(wei: bigint): string {
-  return formatEther(wei);
-}
