@@ -83,14 +83,8 @@ npm run snova -- "snova swap-plan-eth-out-v2 nova --amount-in 1000 --recipient 0
 
 ## ETH Mainnet Control Boundary
 
-Run these from `/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet` instead:
-```bash
-npm run eth -- "eth control"
-npm run eth -- "eth signer"
-npm run eth -- "eth balance 0x000000000000000000000000000000000000dEaD eth"
-npm run eth -- "eth allowance nova 0x000000000000000000000000000000000000dEaD routerv2"
-npm run eth -- "eth approve-plan nova routerv2 --amount 1"
-```
+Run generic readiness/control from `/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet`.
+Use that repo's README and `skills/eth-mainnet-control` as the canonical command reference.
 
 ## Notes
 - Uses ETH mainnet RPC from `ETH_MAINNET_RPC_URL` when set.

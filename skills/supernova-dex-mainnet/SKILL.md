@@ -39,20 +39,8 @@ Use that repo first for:
 
 ## Mainnet prerequisite
 
-From `/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet`:
-
-```bash
-npm run eth -- "eth control"
-npm run eth -- "eth signer"
-```
-
-If you need balances / allowances / approvals, stay in that repo:
-
-```bash
-npm run eth -- "eth balance <owner> <asset|eth>"
-npm run eth -- "eth allowance <token> <owner> <spender|alias>"
-npm run eth -- "eth approve-plan <token> <spender|alias> --amount <decimal>"
-```
+Complete generic ETH mainnet readiness in `/Users/marko/.openclaw/workspace/Clawberto-eth-mainnet` first.
+Use that repo's README and `skills/eth-mainnet-control` as the canonical command reference.
 
 ## Commands
 
@@ -104,4 +92,3 @@ Tokens:
 ## References
 
 - `references/interaction-playbook.md`
-- `references/eth-mainnet-control.md`
